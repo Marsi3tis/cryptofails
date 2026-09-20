@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cryptographic Failures – interaktyvi demonstracija</title>
+  <style>
+    :root{
+      --bg:#f5f7fa;
+      --panel:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --border:#d1d5db;
+      --accent:#2563eb;
+      --accent-hover:#1d4ed8;
+      --good:#166534;
+      --bad:#991b1b;
+      --soft:#eef2ff;
+      --code:#111827;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding:24px;
+    }
+    header{
+      margin-bottom:18px;
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:30px;
+    }
+    .subtitle{
+      color:var(--muted);
+      margin:0;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:12px;
+      overflow:hidden;
+    }
+    .tabs{
+      display:flex;
+      flex-wrap:wrap;
+      border-bottom:1px solid var(--border);
+      background:#fafafa;
+    }
+    .tab-btn{
+      border:0;
+      border-right:1px solid var(--border);
+      background:transparent;
+      padding:14px 18px;
+      cursor:pointer;
+      font-weight:700;
+      color:var(--text);
+    }
+    .tab-btn.active{
+      background:var(--panel);
+      color:var(--accent);
+      box-shadow:inset 0 -3px 0 var(--accent);
+    }
+    .tab-btn:focus-visible,
+    button:focus-visible,
+    input:focus-visible{
+      outline:3px solid rgba(37,99,235,.25);
+      outline-offset:2px;
+    }
+    .section{
+      display:none;
+      padding:22px;
+    }
+    .section.active{
+      display:block;
+    }
+    .section h2{
+      margin-top:0;
+      margin-bottom:6px;
+      font-size:22px;
+    }
+    .help{
+      color:var(--muted);
+      margin-top:0;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin:12px 0;
+    }
+    .row label{
+      font-weight:700;
+    }
+    input[type="text"],
+    input[type="password"]{
+      flex:1 1 320px;
+      min-width:0;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      font-size:16px;
+      background:#fff;
+      color:var(--text);
+    }
+    button{
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:10px 14px;
+      font-size:15px;
+      cursor:pointer;
+      background:#fff;
+      color:var(--text);
+    }
+    button.primary{
+      background:var(--accent);
+      color:#fff;
+      border-color:var(--accent);
+    }
+    button.primary:hover{
+      background:var(--accent-hover);
+    }
+    .output{
+      margin-top:16px;
+      background:#f9fafb;
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:14px;
+      min-height:150px;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+      font-family:Consolas, Monaco, monospace;
+      font-size:14px;
+    }
+    .note{
+      margin-top:12px;
+      padding:12px 14px;
+      background:var(--soft);
+      border-left:4px solid var(--accent);
+      border-radius:6px;
+    }
+    .good{color:var(--good);font-weight:700}
+    .bad{color:var(--bad);font-weight:700}
+    .quiz-option{
+      display:block;
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:10px 12px;
+      margin:8px 0;
+      cursor:pointer;
+      background:#fff;
+    }
+    .quiz-option input{
+      margin-right:8px;
+    }
+    .footer-note{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:14px;
+    }
+    code{
+      background:#eef2f7;
+      padding:2px 5px;
+      border-radius:4px;
+    }
+    @media (max-width:640px){
+      .wrap{padding:12px}
+      h1{font-size:24px}
+      .tab-btn{
+        flex:1 1 50%;
+        border-bottom:1px solid var(--border);
+      }
+      .section{padding:16px}
+      button{width:100%}
+      .row{align-items:stretch}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Cryptographic Failures</h1>
+      <p class="subtitle">Interaktyvi saugi demonstracija apie slaptažodžių saugojimą, tokenus ir raktų valdymą.</p>
+    </header>
+
+    <main class="card">
+      <nav class="tabs" aria-label="Demonstracijos skiltys">
+        <button class="tab-btn active" data-tab="passwords">Slaptažodžiai</button>
+        <button class="tab-btn" data-tab="tokens">Tokenai</button>
+        <button class="tab-btn" data-tab="keys">Raktų valdymas</button>
+        <button class="tab-btn" data-tab="quiz">Testas</button>
+      </nav>
+
+      <section id="passwords" class="section active">
+        <h2>Slaptažodžių saugojimas</h2>
+        <p class="help">Įvesk demonstracinį slaptažodį ir palygink skirtingus saugojimo būdus.</p>
+
+        <div class="row">
+          <label for="passwordInput">Slaptažodis:</label>
+          <input id="passwordInput" type="text" value="Slaptazodis123!" autocomplete="off">
+        </div>
+
+        <div class="row">
+          <button id="plaintextBtn">Plaintext</button>
+          <button id="shaBtn">SHA-256</button>
+          <button id="pbkdfBtn" class="primary">PBKDF2 + salt</button>
+          <button id="compareBtn">Palyginti</button>
+        </div>
+
+        <div class="note">
+          PBKDF2 čia naudojamas todėl, kad jis integruotas į naršyklės Web Crypto API. Naujesnėse sistemose slaptažodžiams dažnai rekomenduojamas <strong>Argon2id</strong>, jei jis prieinamas.
+        </div>
+
+        <div id="passwordOutput" class="output" aria-live="polite">Pasirink veiksmą.</div>
+
+        <hr style="margin:22px 0;border:0;border-top:1px solid var(--border)">
+
+        <h3>Prisijungimo patikrinimo simuliacija</h3>
+        <p class="help">Pirmiausia išsaugok dabartinio slaptažodžio hash. Tada pabandyk prisijungti.</p>
+
+        <div class="row">
+          <button id="storeBtn" class="primary">Išsaugoti hash</button>
+        </div>
+
+        <div class="row">
+          <label for="verifyInput">Bandymas prisijungti:</label>
+          <input id="verifyInput" type="password" placeholder="Įvesk slaptažodį">
+          <button id="verifyBtn">Patikrinti</button>
+        </div>
+        <div id="verifyResult" aria-live="polite"></div>
+      </section>
+
+      <section id="tokens" class="section">
+        <h2>Atsitiktinių tokenų generavimas</h2>
+        <p class="help">Palygink paprastą pseudoatsitiktinį generatorių su kriptografiškai saugesniu generatoriumi.</p>
+
+        <div class="row">
+          <button id="weakTokenBtn">Generuoti su Math.random()</button>
+          <button id="secureTokenBtn" class="primary">Generuoti su crypto.getRandomValues()</button>
+        </div>
+
+        <div id="tokenOutput" class="output" aria-live="polite">Pasirink generatorių.</div>
+
+        <hr style="margin:22px 0;border:0;border-top:1px solid var(--border)">
+
+        <h3>Nuspėjamumo demonstracija</h3>
+        <p class="help">Ta pati seed reikšmė deterministiniame generatoriuje duoda tą pačią seką.</p>
+
+        <div class="row">
+          <label for="seedInput">Seed:</label>
+          <input id="seedInput" type="text" value="12345">
+          <button id="seedBtn">Generuoti du tokenus</button>
+        </div>
+
+        <div id="seedOutput" class="output" aria-live="polite">Įvesk seed ir spausk mygtuką.</div>
+      </section>
+
+      <section id="keys" class="section">
+        <h2>Kriptografinių raktų valdymas</h2>
+        <p class="help">Net stiprus algoritmas nepadeda, jei slaptas raktas saugomas nesaugiai.</p>
+
+        <div class="row">
+          <button id="keyCodeBtn">Raktas kode</button>
+          <button id="keyConfigBtn">Raktas config faile</button>
+          <button id="keyBetterBtn" class="primary">Geresnis principas</button>
+        </div>
+
+        <div id="keyOutput" class="output" aria-live="polite">Pasirink pavyzdį.</div>
+      </section>
+
+      <section id="quiz" class="section">
+        <h2>Trumpas testas</h2>
+        <p class="help">Pasirink atsakymą ir patikrink rezultatą.</p>
+
+        <div id="quizBox"></div>
+        <div class="row">
+          <button id="quizSubmitBtn" class="primary">Atsakyti</button>
+          <button id="quizNextBtn" disabled>Kitas klausimas</button>
+          <button id="quizResetBtn">Pradėti iš naujo</button>
+        </div>
+        <div id="quizFeedback" aria-live="polite"></div>
+        <p id="quizScore" class="footer-note">Rezultatas: 0/0</p>
+      </section>
+    </main>
+
+    <p class="footer-note">
+      Demonstracija veikia tik lokaliai naršyklėje. Įvesti slaptažodžiai ir sugeneruotos reikšmės niekur nesiunčiamos.
+    </p>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const enc = new TextEncoder();
+  const $ = (id) => document.getElementById(id);
+
+  const toHex = (bytes) =>
+    Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  async function sha256(text) {
+    const data = enc.encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return toHex(new Uint8Array(digest));
+  }
+
+  async function pbkdf2(password, salt) {
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"]
+    );
+
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        hash: "SHA-256",
+        salt,
+        iterations: 600000
+      },
+      keyMaterial,
+      256
+    );
+
+    return new Uint8Array(bits);
+  }
+
+  function randomBytes(length) {
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    return bytes;
+  }
+
+  function equalBytes(a, b) {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+    return diff === 0;
+  }
+
+  // Tabs
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active");
+      $(btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // Password demo
+  $("plaintextBtn").addEventListener("click", () => {
+    const p = $("passwordInput").value;
+    $("passwordOutput").textContent =
+      "PLAINTEXT\n\n" +
+      "Duomenų bazėje būtų saugoma:\n" + p +
+      "\n\nProblema: nutekėjus duomenų bazei slaptažodis iš karto matomas.";
+  });
+
+  $("shaBtn").addEventListener("click", async () => {
+    const p = $("passwordInput").value;
+    if (!p) return alert("Įvesk slaptažodį.");
+    const hash = await sha256(p);
+    $("passwordOutput").textContent =
+      "SHA-256\n\n" +
+      "Slaptažodis:\n" + p +
+      "\n\nSHA-256 hash:\n" + hash +
+      "\n\nProblema: SHA-256 yra labai greitas ir nėra specialiai skirtas slaptažodžiams saugoti.";
+  });
+
+  $("pbkdfBtn").addEventListener("click", async () => {
+    const p = $("passwordInput").value;
+    if (!p) return alert("Įvesk slaptažodį.");
+    const salt = randomBytes(16);
+    const hash = await pbkdf2(p, salt);
+    $("passwordOutput").textContent =
+      "PBKDF2-HMAC-SHA256 + SALT\n\n" +
+      "Salt:\n" + toHex(salt) +
+      "\n\nHash:\n" + toHex(hash) +
+      "\n\nIteracijos: 600000" +
+      "\n\nPrivalumas: naudojamas atsitiktinis salt ir daug iteracijų.";
+  });
+
+  $("compareBtn").addEventListener("click", async () => {
+    const p = $("passwordInput").value;
+    if (!p) return alert("Įvesk slaptažodį.");
+
+    const shaA = await sha256(p);
+    const shaB = await sha256(p);
+
+    const saltA = randomBytes(16);
+    const saltB = randomBytes(16);
+    const hashA = await pbkdf2(p, saltA);
+    const hashB = await pbkdf2(p, saltB);
+
+    $("passwordOutput").textContent =
+      "VIENODAS SLAPTAŽODIS – SKIRTINGAS SAUGOJIMAS\n\n" +
+      "SHA-256:\n" +
+      "A: " + shaA + "\n" +
+      "B: " + shaB + "\n" +
+      "Vienodi? " + (shaA === shaB ? "TAIP" : "NE") + "\n\n" +
+      "PBKDF2 + skirtingi salt:\n" +
+      "A salt: " + toHex(saltA) + "\n" +
+      "A hash: " + toHex(hashA) + "\n\n" +
+      "B salt: " + toHex(saltB) + "\n" +
+      "B hash: " + toHex(hashB) + "\n" +
+      "Vienodi? " + (equalBytes(hashA, hashB) ? "TAIP" : "NE") +
+      "\n\nRezultatas: unikalus salt padeda užtikrinti, kad vienodi slaptažodžiai neturėtų vienodų saugomų hash reikšmių.";
+  });
+
+  let storedSalt = null;
+  let storedHash = null;
+
+  $("storeBtn").addEventListener("click", async () => {
+    const p = $("passwordInput").value;
+    if (!p) return alert("Įvesk slaptažodį.");
+
+    storedSalt = randomBytes(16);
+    storedHash = await pbkdf2(p, storedSalt);
+
+    $("passwordOutput").textContent =
+      "SLAPTAŽODIS PARUOŠTAS PATIKRINIMUI\n\n" +
+      "Duomenų bazėje būtų saugoma tik:\n\n" +
+      "Salt:\n" + toHex(storedSalt) +
+      "\n\nHash:\n" + toHex(storedHash) +
+      "\n\nPats slaptažodis nesaugomas.";
+
+    $("verifyResult").textContent = "";
+  });
+
+  $("verifyBtn").addEventListener("click", async () => {
+    if (!storedSalt || !storedHash) {
+      $("verifyResult").innerHTML = '<p class="bad">Pirmiausia išsaugok slaptažodžio hash.</p>';
+      return;
+    }
+
+    const attempt = $("verifyInput").value;
+    const testHash = await pbkdf2(attempt, storedSalt);
+    const ok = equalBytes(storedHash, testHash);
+
+    $("verifyResult").innerHTML = ok
+      ? '<p class="good">Slaptažodis teisingas.</p>'
+      : '<p class="bad">Slaptažodis neteisingas.</p>';
+  });
+
+  // Token demo
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+  $("weakTokenBtn").addEventListener("click", () => {
+    let token = "";
+    for (let i = 0; i < 24; i++) {
+      token += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+
+    $("tokenOutput").textContent =
+      "Math.random()\n\nToken:\n" + token +
+      "\n\nMath.random() nėra skirtas slaptiems saugumo tokenams.";
+  });
+
+  $("secureTokenBtn").addEventListener("click", () => {
+    const bytes = randomBytes(24);
+    const token = toHex(bytes);
+
+    $("tokenOutput").textContent =
+      "crypto.getRandomValues()\n\nToken:\n" + token +
+      "\n\nŠis generatorius skirtas kriptografiškai stiprioms atsitiktinėms reikšmėms.";
+  });
+
+  // Educational deterministic PRNG for seed demo.
+  function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function() {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+
+  function mulberry32(a) {
+    return function() {
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function seededToken(seed) {
+    const seedFn = xmur3(seed);
+    const rand = mulberry32(seedFn());
+    let token = "";
+    for (let i = 0; i < 24; i++) {
+      token += alphabet[Math.floor(rand() * alphabet.length)];
+    }
+    return token;
+  }
+
+  $("seedBtn").addEventListener("click", () => {
+    const seed = $("seedInput").value;
+    if (!seed) return alert("Įvesk seed.");
+
+    const a = seededToken(seed);
+    const b = seededToken(seed);
+
+    $("seedOutput").textContent =
+      "TA PATI SEED REIKŠMĖ\n\n" +
+      "Token A:\n" + a +
+      "\n\nToken B:\n" + b +
+      "\n\nVienodi? " + (a === b ? "TAIP" : "NE") +
+      "\n\nTai edukacinė deterministinio PRNG simuliacija: ta pati pradinė būsena duoda tą pačią seką.";
+  });
+
+  // Key management
+  function demoKey() {
+    return toHex(randomBytes(16));
+  }
+
+  $("keyCodeBtn").addEventListener("click", () => {
+    $("keyOutput").textContent =
+      'BLOGAS PAVYZDYS – RAKTAS KODE\n\n' +
+      'SECRET_KEY = "' + demoKey() + '"\n\n' +
+      "Problema: raktas gali patekti į Git, atsarginę kopiją ar būti matomas žmogui, turinčiam prieigą prie šaltinio kodo.";
+  });
+
+  $("keyConfigBtn").addEventListener("click", () => {
+    $("keyOutput").textContent =
+      "RIZIKINGAS PAVYZDYS – RAKTAS CONFIG FAILE\n\n" +
+      "config.txt\n" +
+      "database_host=localhost\n" +
+      "encryption_key=" + demoKey() +
+      "\n\nProblema: jei config failas laikomas kartu su programa ar nuteka atsarginė kopija, raktas gali nutekėti kartu.";
+  });
+
+  $("keyBetterBtn").addEventListener("click", () => {
+    $("keyOutput").textContent =
+      "GERESNIS PRINCIPAS\n\n" +
+      'SECRET_KEY = os.environ.get("SECRET_KEY")\n\n' +
+      "Tikroji rakto reikšmė nėra įrašyta pačiame kode.\n\n" +
+      "Realiose sistemose raktai turėtų būti laikomi tam skirtose secrets valdymo sistemose arba kitoje ribotos prieigos vietoje.";
+  });
+
+  // Quiz
+  const quiz = [
+    {
+      q: "Kaip geriausia saugoti vartotojo slaptažodį?",
+      a: ["Plaintext", "SHA-256 be salt", "Specializuotas password hashing algoritmas su salt"],
+      c: 2,
+      e: "Slaptažodžiams reikia specializuoto password hashing algoritmo ir unikalaus salt."
+    },
+    {
+      q: "Kuris JavaScript API tinkamesnis saugumo tokenams?",
+      a: ["Math.random()", "crypto.getRandomValues()", "Date.now()"],
+      c: 1,
+      e: "crypto.getRandomValues() skirtas kriptografiškai stiprioms atsitiktinėms reikšmėms."
+    },
+    {
+      q: "Kur blogiausia laikyti kriptografinį raktą?",
+      a: ["Tiesiai programos kode", "Secrets valdymo sistemoje", "Ribotos prieigos aplinkoje"],
+      c: 0,
+      e: "Į kodą įrašyti raktai gali netyčia patekti į viešą saugyklą."
+    },
+    {
+      q: "Kam naudojamas salt?",
+      a: ["Kad vienodi slaptažodžiai nebūtinai turėtų vienodus hash", "Kad būtų galima iššifruoti slaptažodį", "Kad slaptažodis būtų trumpesnis"],
+      c: 0,
+      e: "Unikalus salt padeda gauti skirtingus hash net naudojant vienodus slaptažodžius."
+    }
+  ];
+
+  let qi = 0;
+  let score = 0;
+  let answered = false;
+
+  function renderQuiz() {
+    if (qi >= quiz.length) {
+      $("quizBox").innerHTML = "<h3>Testas baigtas.</h3>";
+      $("quizFeedback").innerHTML = '<p class="good">Galutinis rezultatas: ' + score + "/" + quiz.length + "</p>";
+      $("quizScore").textContent = "Rezultatas: " + score + "/" + quiz.length;
+      $("quizSubmitBtn").disabled = true;
+      $("quizNextBtn").disabled = true;
+      return;
+    }
+
+    const item = quiz[qi];
+    $("quizBox").innerHTML =
+      "<h3>" + (qi + 1) + ". " + item.q + "</h3>" +
+      item.a.map((text, i) =>
+        '<label class="quiz-option"><input type="radio" name="quizAnswer" value="' + i + '"> ' + text + "</label>"
+      ).join("");
+
+    $("quizFeedback").textContent = "";
+    $("quizScore").textContent = "Rezultatas: " + score + "/" + qi;
+    $("quizSubmitBtn").disabled = false;
+    $("quizNextBtn").disabled = true;
+    answered = false;
+  }
+
+  $("quizSubmitBtn").addEventListener("click", () => {
+    if (answered) return;
+
+    const selected = document.querySelector('input[name="quizAnswer"]:checked');
+    if (!selected) return alert("Pasirink atsakymą.");
+
+    const item = quiz[qi];
+    const value = Number(selected.value);
+    const ok = value === item.c;
+
+    if (ok) score++;
+    answered = true;
+
+    $("quizFeedback").innerHTML =
+      '<p class="' + (ok ? "good" : "bad") + '">' +
+      (ok ? "Teisingai." : "Neteisingai.") +
+      "</p><p>Teisingas atsakymas: <strong>" + item.a[item.c] +
+      "</strong></p><p>" + item.e + "</p>";
+
+    document.querySelectorAll('input[name="quizAnswer"]').forEach(r => r.disabled = true);
+    $("quizSubmitBtn").disabled = true;
+    $("quizNextBtn").disabled = false;
+  });
+
+  $("quizNextBtn").addEventListener("click", () => {
+    qi++;
+    renderQuiz();
+  });
+
+  $("quizResetBtn").addEventListener("click", () => {
+    qi = 0;
+    score = 0;
+    renderQuiz();
+  });
+
+  renderQuiz();
+})();
+</script>
+</body>
+</html>
